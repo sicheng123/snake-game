@@ -4,9 +4,9 @@ from config import (
     GRID_WIDTH, GRID_HEIGHT,
     SNAKE_START_X, SNAKE_START_Y, SNAKE_START_LENGTH,
     SNAKE_START_DIRECTION, OPPOSITE_DIRECTIONS,
-    BASE_SPEED, SPEED_INCREMENT, MIN_SPEED,
     FOODS_PER_LEVEL, SPEED_EFFECT_DURATION,
     OBSTACLE_COUNT,
+    DifficultyLevel, DIFFICULTY_CONFIG,
 )
 
 
@@ -69,6 +69,7 @@ class GameState:
         self.snake = Snake()
         self.score = 0
         self.foods_eaten = 0
+        self.difficulty = DifficultyLevel.MEDIUM
         self.obstacles: list[tuple[int, int]] = []
         self._speed_effect_timer = 0.0
         self._speed_modifier = 0  # 正=减速，负=加速
@@ -76,9 +77,10 @@ class GameState:
 
     @property
     def speed(self) -> int:
-        """当前蛇的基础移动间隔（毫秒），仅取决于等级"""
+        """当前蛇的基础移动间隔（毫秒），取决于难度和等级"""
+        cfg = DIFFICULTY_CONFIG[self.difficulty]
         level = self.foods_eaten // FOODS_PER_LEVEL
-        return max(MIN_SPEED, BASE_SPEED - level * SPEED_INCREMENT)
+        return max(cfg["min_speed"], cfg["base_speed"] - level * cfg["speed_increment"])
 
     @property
     def speed_effect_active(self) -> bool:
@@ -107,10 +109,15 @@ class GameState:
 
     def get_effective_speed(self) -> int:
         """获取考虑临时效果后的实际移动间隔（毫秒）"""
+        cfg = DIFFICULTY_CONFIG[self.difficulty]
         speed = self.speed
         if self.speed_effect_active:
-            speed = max(MIN_SPEED, speed + self._speed_modifier)
+            speed = max(cfg["min_speed"], speed + self._speed_modifier)
         return speed
+
+    def set_difficulty(self, difficulty: DifficultyLevel) -> None:
+        """设置难度等级"""
+        self.difficulty = difficulty
 
     def check_obstacle_collision(self) -> bool:
         """检查蛇头是否撞到障碍物"""
