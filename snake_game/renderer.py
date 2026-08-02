@@ -178,7 +178,7 @@ class Renderer:
         if highlight_timer > 0:
             color = COLOR_WHITE
         text = self._small_font.render(f"难度: {difficulty.value}", True, color)
-        self.screen.blit(text, (10, 35))
+        self.screen.blit(text, (10, 60))
 
     def draw_menu(self, highscore: int, difficulty: DifficultyLevel) -> None:
         """绘制主菜单"""

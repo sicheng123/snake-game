@@ -243,5 +243,9 @@ class SceneManager:
             self.renderer.draw_snake(self.game_state.snake)
             self.renderer.draw_score(self.game_state.score, self.highscore)
             self.renderer.draw_speed_indicator(self.game_state)
+            self.renderer.draw_difficulty_indicator(
+                self.game_state.difficulty,
+                self.difficulty_highlight_timer
+            )
         if self.food:
             self.renderer.draw_food(self.food)
