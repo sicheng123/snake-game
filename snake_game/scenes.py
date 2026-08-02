@@ -101,6 +101,31 @@ class SceneManager:
             self.game_state.snake.set_direction(DIRECTION_LEFT)
         elif key in (pygame.K_RIGHT, pygame.K_d):
             self.game_state.snake.set_direction(DIRECTION_RIGHT)
+        elif key == pygame.K_1:
+            self._set_game_difficulty(DifficultyLevel.SLOW)
+        elif key == pygame.K_2:
+            self._set_game_difficulty(DifficultyLevel.MEDIUM)
+        elif key == pygame.K_3:
+            self._set_game_difficulty(DifficultyLevel.FAST)
+        elif key in (pygame.K_EQUALS, pygame.K_PLUS):
+            self._cycle_game_difficulty(1)
+        elif key == pygame.K_MINUS:
+            self._cycle_game_difficulty(-1)
+
+    def _set_game_difficulty(self, difficulty: DifficultyLevel) -> None:
+        """在游戏中设置难度"""
+        if self.game_state:
+            self.game_state.set_difficulty(difficulty)
+            self.difficulty_highlight_timer = 1.0
+
+    def _cycle_game_difficulty(self, direction: int) -> None:
+        """在游戏中逐步切换难度"""
+        if self.game_state is None:
+            return
+        idx = DIFFICULTY_ORDER.index(self.game_state.difficulty)
+        idx = (idx + direction) % len(DIFFICULTY_ORDER)
+        self.game_state.set_difficulty(DIFFICULTY_ORDER[idx])
+        self.difficulty_highlight_timer = 1.0
 
     def _handle_pause_key(self, key: int) -> None:
         if key == pygame.K_SPACE:
@@ -122,6 +147,12 @@ class SceneManager:
 
         # 更新速度效果计时器
         self.game_state.update(dt)
+
+        # 递减难度高亮计时器
+        if self.difficulty_highlight_timer > 0:
+            self.difficulty_highlight_timer -= dt
+            if self.difficulty_highlight_timer < 0:
+                self.difficulty_highlight_timer = 0
 
         # 更新食物计时器
         if self.food:
