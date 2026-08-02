@@ -1,4 +1,5 @@
 """游戏常量配置"""
+from enum import Enum
 
 # 窗口设置
 WINDOW_WIDTH = 800
@@ -62,3 +63,26 @@ OPPOSITE_DIRECTIONS = {
     DIRECTION_LEFT: DIRECTION_RIGHT,
     DIRECTION_RIGHT: DIRECTION_LEFT,
 }
+
+# 难度等级
+class DifficultyLevel(Enum):
+    SLOW = "慢速"
+    MEDIUM = "中速"
+    FAST = "快速"
+
+# 难度参数配置
+DIFFICULTY_CONFIG = {
+    DifficultyLevel.SLOW:   {"base_speed": 200, "speed_increment": 8,  "min_speed": 80},
+    DifficultyLevel.MEDIUM: {"base_speed": 150, "speed_increment": 10, "min_speed": 50},
+    DifficultyLevel.FAST:   {"base_speed": 100, "speed_increment": 12, "min_speed": 30},
+}
+
+# 难度颜色
+DIFFICULTY_COLORS = {
+    DifficultyLevel.SLOW:   COLOR_GREEN,
+    DifficultyLevel.MEDIUM: COLOR_YELLOW,
+    DifficultyLevel.FAST:   COLOR_RED,
+}
+
+# 难度循环顺序（用于逐步切换）
+DIFFICULTY_ORDER = [DifficultyLevel.SLOW, DifficultyLevel.MEDIUM, DifficultyLevel.FAST]
