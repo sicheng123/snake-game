@@ -5,6 +5,7 @@ from enum import Enum, auto
 from config import (
     DIRECTION_UP, DIRECTION_DOWN, DIRECTION_LEFT, DIRECTION_RIGHT,
     SPEED_EFFECT_AMOUNT,
+    DifficultyLevel, DIFFICULTY_ORDER,
 )
 from game_state import GameState
 from food import spawn_food, FoodType
@@ -30,6 +31,8 @@ class SceneManager:
         self.game_state: GameState | None = None
         self.food = None
         self.highscore = load_highscore()
+        self.menu_difficulty = DifficultyLevel.MEDIUM
+        self.difficulty_highlight_timer = 0.0
         self._move_timer = 0  # 控制蛇移动的累计时间（毫秒）
 
     # ── 场景切换 ──────────────────────────────────────
@@ -37,8 +40,10 @@ class SceneManager:
     def start_game(self) -> None:
         """开始新一局游戏"""
         self.game_state = GameState()
+        self.game_state.set_difficulty(self.menu_difficulty)
         self.food = spawn_food(self.game_state.get_empty_positions())
         self._move_timer = 0
+        self.difficulty_highlight_timer = 0.0
 
     # ── 事件处理 ──────────────────────────────────────
 
@@ -72,6 +77,16 @@ class SceneManager:
         if key == pygame.K_RETURN:
             self.scene = Scene.GAME
             self.start_game()
+        elif key in (pygame.K_LEFT, pygame.K_a):
+            self._cycle_menu_difficulty(-1)
+        elif key in (pygame.K_RIGHT, pygame.K_d):
+            self._cycle_menu_difficulty(1)
+
+    def _cycle_menu_difficulty(self, direction: int) -> None:
+        """在菜单中循环切换难度"""
+        idx = DIFFICULTY_ORDER.index(self.menu_difficulty)
+        idx = (idx + direction) % len(DIFFICULTY_ORDER)
+        self.menu_difficulty = DIFFICULTY_ORDER[idx]
 
     def _handle_game_key(self, key: int) -> None:
         if self.game_state is None:
@@ -170,7 +185,7 @@ class SceneManager:
     def draw(self) -> None:
         """根据当前场景绘制画面"""
         if self.scene == Scene.MENU:
-            self.renderer.draw_menu(self.highscore)
+            self.renderer.draw_menu(self.highscore, self.menu_difficulty)
 
         elif self.scene in (Scene.GAME, Scene.PAUSE):
             self._draw_game_scene()
