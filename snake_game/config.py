@@ -30,10 +30,6 @@ SNAKE_START_X = GRID_WIDTH // 2
 SNAKE_START_Y = GRID_HEIGHT // 2
 SNAKE_START_DIRECTION = (1, 0)  # 初始向右
 
-# 速度设置（毫秒/步）
-BASE_SPEED = 150          # 初始速度
-SPEED_INCREMENT = 10      # 每升一级减少的毫秒数
-MIN_SPEED = 50            # 最快速度上限
 FOODS_PER_LEVEL = 5       # 每吃 N 个食物升一级
 SPEED_EFFECT_DURATION = 8  # 加速/减速效果持续时间（秒）
 SPEED_EFFECT_AMOUNT = 30  # 速度效果影响量（毫秒）
