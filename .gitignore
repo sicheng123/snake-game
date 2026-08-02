@@ -18,3 +18,6 @@ snake_demo.html
 Thumbs.db
 .claude/*
 !.claude/memory/
+build/
+dist/
+*.spec
