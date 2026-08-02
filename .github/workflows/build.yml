@@ -30,7 +30,7 @@ jobs:
           python-version: "3.11"
 
       - name: 安装依赖
-        run: pip install pygame pyinstaller
+        run: pip install pygame pyinstaller simpleaudio
 
       - name: 打包
         shell: bash
