@@ -34,7 +34,7 @@ jobs:
 
       - name: 打包
         shell: bash
-        run: cd snake_game && pyinstaller --onefile --windowed --name="贪吃蛇" --paths=. --hidden-import=config --hidden-import=game_state --hidden-import=scenes --hidden-import=renderer --hidden-import=food --hidden-import=highscore --hidden-import=obstacles main.py
+        run: cd snake_game && pyinstaller --onefile --windowed --name="贪吃蛇" --paths=. --hidden-import=config --hidden-import=game_state --hidden-import=scenes --hidden-import=renderer --hidden-import=food --hidden-import=highscore --hidden-import=obstacles --hidden-import=sound main.py
 
       - name: 上传产物（Linux/Mac）
         if: runner.os != 'Windows'
