@@ -1,9 +1,13 @@
-"""音效系统：程序生成 WAV 并通过 simpleaudio 播放"""
+"""音效系统：程序生成 WAV 并通过系统播放器播放"""
 import struct
 import math
 import io
 import wave
-import simpleaudio
+import os
+import sys
+import subprocess
+import tempfile
+import threading
 
 
 SAMPLE_RATE = 44100
@@ -20,15 +24,6 @@ def _sine_wave(freq: float, duration: float, amp: float = 0.5) -> bytes:
         value = int(MAX_AMP * amp * math.sin(2 * math.pi * freq * t))
         data.append(struct.pack("<h", value))
     return b"".join(data)
-
-
-def _fade_amp(duration: float, amp_start: float, amp_end: float) -> list[float]:
-    """生成线性淡入/淡出的振幅序列"""
-    n_samples = int(SAMPLE_RATE * duration)
-    return [
-        amp_start + (amp_end - amp_start) * i / n_samples
-        for i in range(n_samples)
-    ]
 
 
 def _chirp(freq_start: float, freq_end: float, duration: float, amp: float = 0.5) -> bytes:
@@ -66,6 +61,22 @@ def _silence(duration: float) -> bytes:
     return b"\x00" * n_samples * (BITS_PER_SAMPLE // 8)
 
 
+def _get_player_cmd(wav_path: str) -> list[str] | None:
+    """根据平台返回系统播放器命令"""
+    if sys.platform == "win32":
+        return [
+            "powershell", "-c",
+            f'(New-Object Media.SoundPlayer "{wav_path}").Play();'
+        ]
+    elif sys.platform == "darwin":
+        return ["afplay", wav_path]
+    else:
+        # Linux: 优先 aplay（ALSA），其次 paplay（PulseAudio）
+        if os.path.exists("/usr/bin/aplay") or os.path.exists("/bin/aplay"):
+            return ["aplay", "-q", wav_path]
+        return ["paplay", wav_path]
+
+
 class SoundManager:
     """音效管理器"""
 
@@ -81,13 +92,30 @@ class SoundManager:
         self._enabled = value
 
     def _play(self, frames: bytes) -> None:
-        """播放原始音频数据"""
+        """播放原始音频数据（写入临时文件，系统播放器异步播放）"""
         if not self._enabled:
             return
         try:
             wav_data = _make_wav(frames)
-            play_obj = simpleaudio.play_buffer(wav_data, 1, BITS_PER_SAMPLE // 8, SAMPLE_RATE)
-            # 非阻塞播放，让音效独立完成
+            cmd = _get_player_cmd("-")
+            if cmd is None:
+                return
+            # 写入临时文件（aplay/afplay 不支持 stdin 管道）
+            fd, tmp_path = tempfile.mkstemp(suffix=".wav", prefix="snake_")
+            with os.fdopen(fd, "wb") as f:
+                f.write(wav_data)
+            cmd[-1] = tmp_path
+            # 后台线程播放，播完后清理临时文件
+            def _play_and_clean():
+                try:
+                    subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5)
+                except Exception:
+                    pass
+                try:
+                    os.unlink(tmp_path)
+                except OSError:
+                    pass
+            threading.Thread(target=_play_and_clean, daemon=True).start()
         except Exception:
             pass  # 音频播放失败不影响游戏
 
@@ -97,7 +125,7 @@ class SoundManager:
         self._play(frames)
 
     def play_die(self) -> None:
-        """死亡：下降低音 400Hz→200Hz, 0.3s，带衰减"""
+        """死亡：下降低音 400Hz→200Hz, 0.3s"""
         frames = _chirp(400, 200, 0.3, amp=0.6)
         self._play(frames)
 
