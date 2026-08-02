@@ -5,6 +5,7 @@ from config import (
     COLOR_BLACK, COLOR_WHITE, COLOR_GREEN, COLOR_GREEN_DARK,
     COLOR_GREEN_LIGHT, COLOR_RED, COLOR_DARK_RED,
     COLOR_YELLOW, COLOR_GRAY, COLOR_GRAY_LIGHT,
+    DifficultyLevel, DIFFICULTY_COLORS,
 )
 from game_state import Snake, GameState
 from food import Food
@@ -170,18 +171,31 @@ class Renderer:
             )
             self.screen.blit(text, (10, 35))
 
-    def draw_menu(self, highscore: int) -> None:
+    def draw_difficulty_indicator(self, difficulty: DifficultyLevel, highlight_timer: float = 0.0) -> None:
+        """绘制难度指示器（左上角，分数下方）"""
+        color = DIFFICULTY_COLORS[difficulty]
+        # 高亮效果：timer > 0 时用白色
+        if highlight_timer > 0:
+            color = COLOR_WHITE
+        text = self._small_font.render(f"难度: {difficulty.value}", True, color)
+        self.screen.blit(text, (10, 35))
+
+    def draw_menu(self, highscore: int, difficulty: DifficultyLevel) -> None:
         """绘制主菜单"""
         self.draw_background()
         self._draw_centered_text("贪  吃  蛇", self._title_font, COLOR_GREEN_LIGHT, -80)
-        self._draw_centered_text("按回车开始游戏", self._medium_font, COLOR_WHITE, 0)
+        self._draw_centered_text(
+            f"难度: {difficulty.value}  ← →切换",
+            self._medium_font, DIFFICULTY_COLORS[difficulty], -10
+        )
+        self._draw_centered_text("按回车开始游戏", self._medium_font, COLOR_WHITE, 40)
         self._draw_centered_text(
             "方向键 / WASD 移动    空格暂停    Esc 退出",
-            self._small_font, COLOR_GRAY_LIGHT, 45
+            self._small_font, COLOR_GRAY_LIGHT, 85
         )
         if highscore > 0:
             self._draw_centered_text(
-                f"最高分: {highscore}", self._small_font, COLOR_YELLOW, 80
+                f"最高分: {highscore}", self._small_font, COLOR_YELLOW, 120
             )
 
     def draw_pause(self) -> None:
