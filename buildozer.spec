@@ -57,10 +57,10 @@ android.minapi = 21
 #android.sdk = 20
 
 # (int) Android NDK version to use
-#android.ndk = 25b
+android.ndk = 25c
 
 # (int) Android NDK API to use. Leave it empty to use android.minapi value.
-#android.ndk_api = 21
+android.ndk_api = 21
 
 # (bool) Use --private data storage (True) or --dir public storage (False)
 #android.private = True
@@ -106,7 +106,7 @@ p4a.branch = develop
 #p4a.hook =
 
 # (str) Bootstrap to use for android builds
-# p4a.bootstrap = sdl2
+p4a.bootstrap = sdl2
 
 # (int) port number to specify an explicit --port= p4a argument (eg for bootstrap flask)
 #p4a.port =
