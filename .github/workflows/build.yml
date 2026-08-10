@@ -30,12 +30,16 @@ jobs:
         with:
           python-version: "3.11"
 
+      - name: 安装系统音频依赖（Linux）
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y alsa-utils
+
       - name: 安装依赖
         run: pip install pygame pyinstaller
 
       - name: 打包
         shell: bash
-        run: cd snake_game && pyinstaller --onefile --windowed --name="贪吃蛇" --paths=. --hidden-import=config --hidden-import=game_state --hidden-import=scenes --hidden-import=renderer --hidden-import=food --hidden-import=highscore --hidden-import=obstacles --hidden-import=sound main.py
+        run: cd snake_game && pyinstaller --onefile --windowed --name="贪吃蛇" --paths=. --hidden-import=pygame --hidden-import=config --hidden-import=game_state --hidden-import=scenes --hidden-import=renderer --hidden-import=food --hidden-import=highscore --hidden-import=obstacles --hidden-import=sound main.py
 
       - name: 上传产物（Linux/Mac）
         if: runner.os != 'Windows'

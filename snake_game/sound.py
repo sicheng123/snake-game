@@ -61,20 +61,23 @@ def _silence(duration: float) -> bytes:
     return b"\x00" * n_samples * (BITS_PER_SAMPLE // 8)
 
 
-def _get_player_cmd(wav_path: str) -> list[str] | None:
-    """根据平台返回系统播放器命令"""
+_PATH_PLACEHOLDER = "__SNAKE_AUDIO_PATH__"
+
+
+def _get_player_cmd() -> list[str] | None:
+    """根据平台返回系统播放器命令（路径使用占位符，调用方负责替换）"""
     if sys.platform == "win32":
         return [
             "powershell", "-c",
-            f'(New-Object Media.SoundPlayer "{wav_path}").Play();'
+            f'(New-Object Media.SoundPlayer "{_PATH_PLACEHOLDER}").Play();'
         ]
     elif sys.platform == "darwin":
-        return ["afplay", wav_path]
+        return ["afplay", _PATH_PLACEHOLDER]
     else:
         # Linux: 优先 aplay（ALSA），其次 paplay（PulseAudio）
         if os.path.exists("/usr/bin/aplay") or os.path.exists("/bin/aplay"):
-            return ["aplay", "-q", wav_path]
-        return ["paplay", wav_path]
+            return ["aplay", "-q", _PATH_PLACEHOLDER]
+        return ["paplay", _PATH_PLACEHOLDER]
 
 
 class SoundManager:
@@ -97,14 +100,15 @@ class SoundManager:
             return
         try:
             wav_data = _make_wav(frames)
-            cmd = _get_player_cmd("-")
+            cmd = _get_player_cmd()
             if cmd is None:
                 return
             # 写入临时文件（aplay/afplay 不支持 stdin 管道）
             fd, tmp_path = tempfile.mkstemp(suffix=".wav", prefix="snake_")
             with os.fdopen(fd, "wb") as f:
                 f.write(wav_data)
-            cmd[-1] = tmp_path
+            # 替换占位符为实际路径（Windows 路径嵌入在命令字符串中间）
+            cmd = [arg.replace(_PATH_PLACEHOLDER, tmp_path) for arg in cmd]
             # 后台线程播放，播完后清理临时文件
             def _play_and_clean():
                 try:
