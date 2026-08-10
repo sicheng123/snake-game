@@ -37,6 +37,9 @@ presplash.font_color = FFFFFF
 android.api = 33
 android.minapi = 21
 
+# 自动接受 SDK 许可
+android.accept_sdk_license = True
+
 # NDK 版本（pygame 需要 r25c，较新 NDK 不兼容 pygame C 扩展）
 android.ndk = 25c
 
