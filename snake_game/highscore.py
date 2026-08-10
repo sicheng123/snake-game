@@ -3,7 +3,13 @@ import json
 import os
 
 
-SCORE_FILE = os.path.expanduser("~/.snake_game_highscore.json")
+def _get_score_file() -> str:
+    """获取最高分文件路径，兼容 Android 和桌面平台"""
+    base = os.environ.get("ANDROID_APP_PATH", os.path.expanduser("~"))
+    return os.path.join(base, ".snake_game_highscore.json")
+
+
+SCORE_FILE = _get_score_file()
 
 
 def load_highscore() -> int:

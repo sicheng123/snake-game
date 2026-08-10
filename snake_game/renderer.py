@@ -5,6 +5,9 @@ from config import (
     COLOR_BLACK, COLOR_WHITE, COLOR_GREEN, COLOR_GREEN_DARK,
     COLOR_GREEN_LIGHT, COLOR_RED, COLOR_DARK_RED,
     COLOR_YELLOW, COLOR_GRAY, COLOR_GRAY_LIGHT,
+    DPAD_UP, DPAD_DOWN, DPAD_LEFT, DPAD_RIGHT,
+    TOUCH_PAUSE_BTN, TOUCH_CONFIRM_BTN,
+    TOUCH_DIFF_LEFT_BTN, TOUCH_DIFF_RIGHT_BTN,
     DifficultyLevel, DIFFICULTY_COLORS,
 )
 from game_state import Snake, GameState
@@ -35,15 +38,29 @@ _CJK_FONT_CANDIDATES = [
     "Apple LiGothic",
 ]
 
+# Android 系统字体文件路径（pygame.font.Font 直接加载）
+_ANDROID_CJK_PATHS = [
+    "/system/fonts/DroidSansFallback.ttf",
+    "/system/fonts/NotoSansCJK-Regular.ttc",
+    "/system/fonts/NotoSansSC-Regular.otf",
+]
+
+
+def _find_cjk_font_path() -> str | None:
+    """查找可用的中日韩字体文件路径"""
+    import os as _os
+    for path in _ANDROID_CJK_PATHS:
+        if _os.path.isfile(path):
+            return path
+    return None
+
 
 def _find_cjk_font_name() -> str | None:
     """在系统已安装字体中查找第一个可用的中文字体"""
     available = set(pygame.font.get_fonts())
     for name in _CJK_FONT_CANDIDATES:
-        # pygame 的字体名是全小写
         if name.lower() in available:
             return name
-        # 某些平台可能用下划线或空格
         normalized = name.lower().replace(" ", "")
         for f in available:
             if normalized == f.replace(" ", ""):
@@ -52,11 +69,16 @@ def _find_cjk_font_name() -> str | None:
 
 
 def _create_font(size: int) -> pygame.font.Font:
-    """创建指定大小的字体，优先使用中文字体，失败则回退到默认字体"""
+    """创建指定大小的字体，优先中文字体 → Android 系统路径 → 默认字体"""
+    # 1. 尝试 SysFont（桌面平台）
     cjk_name = _find_cjk_font_name()
     if cjk_name:
         return pygame.font.SysFont(cjk_name, size)
-    # 找不到中文字体，用默认字体（中文会显示为方框）
+    # 2. 尝试 Android 系统字体文件
+    cjk_path = _find_cjk_font_path()
+    if cjk_path:
+        return pygame.font.Font(cjk_path, size)
+    # 3. 回退到默认字体（中文会显示为方框）
     return pygame.font.Font(None, size)
 
 
@@ -231,3 +253,82 @@ class Renderer:
         surf = font.render(text, True, color)
         rect = surf.get_rect(center=(WINDOW_WIDTH // 2, WINDOW_HEIGHT // 2 + y_offset))
         self.screen.blit(surf, rect)
+
+    # ── 触屏控件绘制 ───────────────────────────────────
+
+    def _draw_touch_btn_rect(self, rect: tuple[int, int, int, int], alpha: int = 100) -> None:
+        """绘制半透明按钮背景"""
+        x, y, w, h = rect
+        surf = pygame.Surface((w, h), pygame.SRCALPHA)
+        surf.fill((255, 255, 255, alpha))
+        # 圆角边框
+        pygame.draw.rect(surf, (255, 255, 255, 180), surf.get_rect(), 2, border_radius=8)
+        self.screen.blit(surf, (x, y))
+
+    def _draw_arrow(self, cx: int, cy: int, direction: str, color: tuple, size: int = 12) -> None:
+        """在 (cx, cy) 中心绘制三角箭头"""
+        half = size // 2
+        if direction == "up":
+            pts = [(cx, cy - half), (cx - half, cy + half), (cx + half, cy + half)]
+        elif direction == "down":
+            pts = [(cx, cy + half), (cx - half, cy - half), (cx + half, cy - half)]
+        elif direction == "left":
+            pts = [(cx - half, cy), (cx + half, cy - half), (cx + half, cy + half)]
+        else:  # right
+            pts = [(cx + half, cy), (cx - half, cy - half), (cx - half, cy + half)]
+        pygame.draw.polygon(self.screen, color, pts)
+
+    def draw_touch_controls_menu(self) -> None:
+        """菜单场景触屏控件：开始按钮 + 难度切换箭头"""
+        # 开始按钮
+        x, y, w, h = TOUCH_CONFIRM_BTN
+        surf = pygame.Surface((w, h), pygame.SRCALPHA)
+        surf.fill((0, 200, 0, 120))
+        pygame.draw.rect(surf, COLOR_GREEN_LIGHT, surf.get_rect(), 2, border_radius=10)
+        self.screen.blit(surf, (x, y))
+        txt = self._small_font.render("开始", True, COLOR_WHITE)
+        tr = txt.get_rect(center=(x + w // 2, y + h // 2))
+        self.screen.blit(txt, tr)
+
+        # 难度左箭头
+        lx, ly, lw, lh = TOUCH_DIFF_LEFT_BTN
+        self._draw_touch_btn_rect((lx, ly, lw, lh), 80)
+        self._draw_arrow(lx + lw // 2, ly + lh // 2, "left", COLOR_WHITE, 14)
+
+        # 难度右箭头
+        rx, ry, rw, rh = TOUCH_DIFF_RIGHT_BTN
+        self._draw_touch_btn_rect((rx, ry, rw, rh), 80)
+        self._draw_arrow(rx + rw // 2, ry + rh // 2, "right", COLOR_WHITE, 14)
+
+    def draw_touch_controls_game(self) -> None:
+        """游戏场景触屏控件：D-pad + 暂停按钮"""
+        # D-pad 四个方向键
+        for rect_tuple, arrow_dir in [
+            (DPAD_UP, "up"), (DPAD_DOWN, "down"),
+            (DPAD_LEFT, "left"), (DPAD_RIGHT, "right"),
+        ]:
+            self._draw_touch_btn_rect(rect_tuple, 70)
+            x, y, w, h = rect_tuple
+            self._draw_arrow(x + w // 2, y + h // 2, arrow_dir, COLOR_WHITE, 14)
+
+        # 暂停按钮（右上角）
+        px, py, pw, ph = TOUCH_PAUSE_BTN
+        self._draw_touch_btn_rect((px, py, pw, ph), 100)
+        # 双竖线暂停图标
+        bar_w = 4
+        gap = 6
+        for offset in (-gap, gap):
+            bx = px + pw // 2 + offset - bar_w // 2
+            pygame.draw.rect(self.screen, COLOR_WHITE,
+                             (bx, py + ph // 2 - 7, bar_w, 14), border_radius=2)
+
+    def draw_touch_controls_gameover(self) -> None:
+        """游戏结束场景触屏控件：返回菜单按钮"""
+        x, y, w, h = TOUCH_CONFIRM_BTN
+        surf = pygame.Surface((w, h), pygame.SRCALPHA)
+        surf.fill((200, 50, 50, 140))
+        pygame.draw.rect(surf, COLOR_RED, surf.get_rect(), 2, border_radius=10)
+        self.screen.blit(surf, (x, y))
+        txt = self._small_font.render("返回菜单", True, COLOR_WHITE)
+        tr = txt.get_rect(center=(x + w // 2, y + h // 2))
+        self.screen.blit(txt, tr)

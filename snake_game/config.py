@@ -82,3 +82,15 @@ DIFFICULTY_COLORS = {
 
 # 难度循环顺序（用于逐步切换）
 DIFFICULTY_ORDER = [DifficultyLevel.SLOW, DifficultyLevel.MEDIUM, DifficultyLevel.FAST]
+
+# ── 触屏控件布局（x, y, w, h 像素坐标） ──
+DPAD_UP    = (695, 400, 50, 50)
+DPAD_DOWN  = (695, 500, 50, 50)
+DPAD_LEFT  = (645, 450, 50, 50)
+DPAD_RIGHT = (745, 450, 50, 50)
+TOUCH_PAUSE_BTN    = (WINDOW_WIDTH - 50, 8, 40, 30)
+TOUCH_CONFIRM_BTN  = (WINDOW_WIDTH // 2 - 80, WINDOW_HEIGHT // 2 - 25, 160, 50)
+TOUCH_DIFF_LEFT_BTN  = (WINDOW_WIDTH // 2 - 140, WINDOW_HEIGHT // 2 - 35, 50, 50)
+TOUCH_DIFF_RIGHT_BTN = (WINDOW_WIDTH // 2 + 90, WINDOW_HEIGHT // 2 - 35, 50, 50)
+# 滑动判定阈值（像素）
+SWIPE_THRESHOLD = 35

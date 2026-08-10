@@ -5,6 +5,11 @@ from enum import Enum, auto
 from config import (
     DIRECTION_UP, DIRECTION_DOWN, DIRECTION_LEFT, DIRECTION_RIGHT,
     SPEED_EFFECT_AMOUNT, FOODS_PER_LEVEL,
+    WINDOW_WIDTH, WINDOW_HEIGHT,
+    DPAD_UP, DPAD_DOWN, DPAD_LEFT, DPAD_RIGHT,
+    TOUCH_PAUSE_BTN, TOUCH_CONFIRM_BTN,
+    TOUCH_DIFF_LEFT_BTN, TOUCH_DIFF_RIGHT_BTN,
+    SWIPE_THRESHOLD,
     DifficultyLevel, DIFFICULTY_ORDER,
 )
 from game_state import GameState
@@ -17,6 +22,21 @@ class Scene(Enum):
     GAME = auto()
     PAUSE = auto()
     GAMEOVER = auto()
+
+
+# ── 触屏按钮区域（基于 config 坐标创建的 pygame.Rect） ──
+
+_D_PAD_BTNS = {
+    DIRECTION_UP:    pygame.Rect(DPAD_UP),
+    DIRECTION_DOWN:  pygame.Rect(DPAD_DOWN),
+    DIRECTION_LEFT:  pygame.Rect(DPAD_LEFT),
+    DIRECTION_RIGHT: pygame.Rect(DPAD_RIGHT),
+}
+
+_PAUSE_BTN      = pygame.Rect(TOUCH_PAUSE_BTN)
+_CONFIRM_BTN     = pygame.Rect(TOUCH_CONFIRM_BTN)
+_DIFF_LEFT_BTN  = pygame.Rect(TOUCH_DIFF_LEFT_BTN)
+_DIFF_RIGHT_BTN = pygame.Rect(TOUCH_DIFF_RIGHT_BTN)
 
 
 class SceneManager:
@@ -33,6 +53,9 @@ class SceneManager:
         self.menu_difficulty = DifficultyLevel.MEDIUM
         self.difficulty_highlight_timer = 0.0
         self._move_timer = 0  # 控制蛇移动的累计时间（毫秒）
+        # 触屏状态
+        self._pointer_start: tuple[int, int] | None = None
+        self.is_mobile = False  # 检测到触屏事件后设为 True，渲染器据此绘制控件
 
     # ── 场景切换 ──────────────────────────────────────
 
@@ -52,25 +75,99 @@ class SceneManager:
             return False
 
         if event.type == pygame.KEYDOWN:
-            key = event.key
+            return self._dispatch_key(event.key)
 
-            # Esc 全局退出
-            if key == pygame.K_ESCAPE:
-                return False
-
-            if self.scene == Scene.MENU:
-                self._handle_menu_key(key)
-
-            elif self.scene == Scene.GAME:
-                self._handle_game_key(key)
-
-            elif self.scene == Scene.PAUSE:
-                self._handle_pause_key(key)
-
-            elif self.scene == Scene.GAMEOVER:
-                self._handle_gameover_key(key)
+        # 触屏 / 鼠标事件
+        if event.type == pygame.FINGERDOWN:
+            self.is_mobile = True
+            self._on_pointer_down(event.x * WINDOW_WIDTH, event.y * WINDOW_HEIGHT)
+        elif event.type == pygame.FINGERUP:
+            self._on_pointer_up(event.x * WINDOW_WIDTH, event.y * WINDOW_HEIGHT)
+        elif event.type == pygame.MOUSEBUTTONDOWN:
+            self._on_pointer_down(*event.pos)
+        elif event.type == pygame.MOUSEBUTTONUP:
+            self._on_pointer_up(*event.pos)
 
         return True
+
+    def _dispatch_key(self, key: int) -> bool:
+        """键盘事件分发"""
+        if key == pygame.K_ESCAPE:
+            return False
+
+        if self.scene == Scene.MENU:
+            self._handle_menu_key(key)
+        elif self.scene == Scene.GAME:
+            self._handle_game_key(key)
+        elif self.scene == Scene.PAUSE:
+            self._handle_pause_key(key)
+        elif self.scene == Scene.GAMEOVER:
+            self._handle_gameover_key(key)
+        return True
+
+    # ── 触屏 / 鼠标事件 ──────────────────────────────
+
+    def _on_pointer_down(self, x: float, y: float) -> None:
+        self._pointer_start = (int(x), int(y))
+
+    def _on_pointer_up(self, x: float, y: float) -> None:
+        if self._pointer_start is None:
+            return
+        start = self._pointer_start
+        self._pointer_start = None
+        end_x, end_y = int(x), int(y)
+        dx = end_x - start[0]
+        dy = end_y - start[1]
+
+        # 判断滑动 vs 点击
+        if max(abs(dx), abs(dy)) >= SWIPE_THRESHOLD:
+            self._handle_swipe(dx, dy)
+        else:
+            self._handle_tap(end_x, end_y)
+
+    def _handle_swipe(self, dx: int, dy: int) -> None:
+        """滑动 → 在游戏场景中改变方向"""
+        if self.scene != Scene.GAME or self.game_state is None:
+            return
+        if abs(dx) > abs(dy):
+            new_dir = DIRECTION_LEFT if dx < 0 else DIRECTION_RIGHT
+        else:
+            new_dir = DIRECTION_UP if dy < 0 else DIRECTION_DOWN
+        self.game_state.snake.set_direction(new_dir)
+
+    def _handle_tap(self, x: int, y: int) -> None:
+        """点击 → 根据场景和按钮区域分发"""
+        pos = (x, y)
+
+        # 暂停按钮（全局，游戏/暂停场景）
+        if self.scene in (Scene.GAME, Scene.PAUSE) and _PAUSE_BTN.collidepoint(pos):
+            if self.scene == Scene.GAME:
+                self.scene = Scene.PAUSE
+            else:
+                self.scene = Scene.GAME
+            return
+
+        # D-pad 方向按钮（游戏场景）
+        if self.scene == Scene.GAME and self.game_state is not None:
+            for direction, rect in _D_PAD_BTNS.items():
+                if rect.collidepoint(pos):
+                    self.game_state.snake.set_direction(direction)
+                    return
+
+        # 菜单场景
+        if self.scene == Scene.MENU:
+            if _CONFIRM_BTN.collidepoint(pos):
+                self.scene = Scene.GAME
+                self.start_game()
+            elif _DIFF_LEFT_BTN.collidepoint(pos):
+                self._cycle_menu_difficulty(-1)
+            elif _DIFF_RIGHT_BTN.collidepoint(pos):
+                self._cycle_menu_difficulty(1)
+
+        # 游戏结束场景
+        elif self.scene == Scene.GAMEOVER:
+            if _CONFIRM_BTN.collidepoint(pos):
+                self.scene = Scene.MENU
 
     def _handle_menu_key(self, key: int) -> None:
         if key == pygame.K_RETURN:
@@ -216,11 +313,15 @@ class SceneManager:
         """根据当前场景绘制画面"""
         if self.scene == Scene.MENU:
             self.renderer.draw_menu(self.highscore, self.menu_difficulty)
+            if self.is_mobile:
+                self.renderer.draw_touch_controls_menu()
 
         elif self.scene in (Scene.GAME, Scene.PAUSE):
             self._draw_game_scene()
             if self.scene == Scene.PAUSE:
                 self.renderer.draw_pause()
+            if self.is_mobile:
+                self.renderer.draw_touch_controls_game()
 
         elif self.scene == Scene.GAMEOVER:
             self._draw_game_scene()
@@ -232,6 +333,8 @@ class SceneManager:
                 self.renderer.draw_gameover(
                     self.game_state.score, self.highscore, is_new
                 )
+            if self.is_mobile:
+                self.renderer.draw_touch_controls_gameover()
 
     def _draw_game_scene(self) -> None:
         """绘制游戏场景（背景+网格+蛇+食物+障碍物+UI）"""

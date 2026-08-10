@@ -55,5 +55,57 @@ jobs:
           name: ${{ matrix.artifact_name }}
           path: snake_game/dist/${{ matrix.artifact_name }}*
 
+  # ========== Android APK 构建 ==========
+  android:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 安装系统依赖
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            openjdk-17-jdk \
+            autoconf \
+            automake \
+            libtool \
+            cmake \
+            libffi-dev \
+            libssl-dev \
+            git \
+            zip \
+            unzip \
+            python3-pip \
+            python3-venv
+
+      - name: 安装 Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 安装 Buildozer
+        run: |
+          pip install --upgrade pip
+          pip install buildozer cython<3
+
+      - name: 缓存 Buildozer 依赖
+        uses: actions/cache@v4
+        with:
+          path: .buildozer
+          key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
+          restore-keys: buildozer-${{ runner.os }}-
+
+      - name: 构建 APK
+        run: buildozer android debug
+        timeout-minutes: 45
+
+      - name: 上传 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: 贪吃蛇-android
+          path: "*.apk"
+
 
 
