@@ -6,6 +6,7 @@ on:
   workflow_dispatch:
 
 jobs:
+  # ========== 原有桌面端打包（完全保留，未改动） ==========
   build:
     strategy:
       matrix:
@@ -40,14 +41,33 @@ jobs:
         if: runner.os != 'Windows'
         run: |
           mv snake_game/dist/贪吃蛇 snake_game/dist/${{ matrix.artifact_name }}
-
       - name: 上传产物（Windows）
         if: runner.os == 'Windows'
         run: |
           mv snake_game/dist/贪吃蛇.exe snake_game/dist/${{ matrix.artifact_name }}.exe
-
       - name: 发布产物
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.artifact_name }}
           path: snake_game/dist/${{ matrix.artifact_name }}*
+
+  # ========== 新增 Android 打包 job ==========
+  android:
+    name: 构建 Android APK
+    runs-on: ubuntu-latest   # Buildozer 必须在 Linux 环境运行
+    steps:
+      - name: 检出代码
+        uses: actions/checkout@v4
+
+      - name: 使用 Buildozer 构建 APK
+        id: buildozer
+        uses: ArtemSBulgakov/buildozer-action@v1
+        with:
+          workdir: .          # 你的 buildozer.spec 文件所在的目录（根目录）
+          command: buildozer android debug   # 构建调试版 APK
+
+      - name: 上传 Android 产物
+        uses: actions/upload-artifact@v4
+        with:
+          name: 贪吃蛇-android
+          path: ${{ steps.buildozer.outputs.filename }}
