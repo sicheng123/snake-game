@@ -79,6 +79,11 @@ jobs:
             unzip \
             python3-pip \
             python3-venv
+          # 新版 libtool 移除了 LT_SYS_SYMBOL_USCORE 宏，p4a 的 libffi recipe 仍在使用
+          # 在系统 aclocal 目录注入空实现，让 autoreconf 能通过
+          sudo tee /usr/share/aclocal/lt_usc_fix.m4 << 'EOF' > /dev/null
+          AC_DEFUN([LT_SYS_SYMBOL_USCORE],[sys_symbol_underscore=no])
+          EOF
 
       - name: 安装 Python
         uses: actions/setup-python@v5
