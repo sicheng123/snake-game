@@ -55,42 +55,5 @@ jobs:
           name: ${{ matrix.artifact_name }}
           path: snake_game/dist/${{ matrix.artifact_name }}*
 
-  # ========== Android 打包 job ==========
-  android:
-    name: 构建 Android APK
-    runs-on: ubuntu-latest
-    steps:
-      - name: 检出代码
-        uses: actions/checkout@v4
 
-      - name: 安装 Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
 
-      - name: 安装系统依赖
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y \
-            python3-pip build-essential git python3-dev \
-            autoconf automake libtool libffi-dev cmake zip unzip \
-            openjdk-17-jdk libltdl-dev \
-            libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev
-
-      - name: 安装 Buildozer
-        run: pip install buildozer "cython<3"
-
-      - name: 缓存 Buildozer 依赖
-        uses: actions/cache@v4
-        with:
-          path: ~/.buildozer
-          key: buildozer-${{ runner.os }}-${{ hashFiles('buildozer.spec') }}
-
-      - name: 构建 Android APK
-        run: buildozer android debug
-
-      - name: 上传 Android 产物
-        uses: actions/upload-artifact@v4
-        with:
-          name: 贪吃蛇-android
-          path: bin/*.apk
