@@ -91,7 +91,7 @@ android.accept_sdk_license = True
 #android.add_activity =
 
 # (str) python-for-android branch to use, defaults to master
-#p4a.branch = master
+p4a.branch = develop
 
 # (str) python-for-android specific fork to use, defaults to None
 #p4a.fork = kivy
@@ -129,7 +129,7 @@ android.accept_sdk_license = True
 [buildozer]
 
 # (int) Log level (0 = error only, 1 = info, 2 = debug (with command output))
-log_level = 1
+log_level = 2
 
 # (int) Display warning if buildozer is run as root (0 = False, 1 = True)
 warn_on_root = 1
