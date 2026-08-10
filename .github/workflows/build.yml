@@ -101,6 +101,12 @@ jobs:
           $ANDROID_SDK_ROOT/cmdline-tools/latest/bin/sdkmanager --sdk_root=$ANDROID_SDK_ROOT "build-tools;34.0.0" "platforms;android-33" "platform-tools"
           echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
           echo "ANDROID_HOME=$ANDROID_SDK_ROOT" >> $GITHUB_ENV
+          # 预填充 Buildozer 的 SDK 路径，确保 aidl 等工具可用
+          BUILDOZER_SDK=$HOME/.buildozer/android/platform/android-sdk
+          mkdir -p $BUILDOZER_SDK
+          cp -r $ANDROID_SDK_ROOT/build-tools $BUILDOZER_SDK/
+          cp -r $ANDROID_SDK_ROOT/platforms $BUILDOZER_SDK/
+          cp -r $ANDROID_SDK_ROOT/platform-tools $BUILDOZER_SDK/
 
       - name: 缓存 Buildozer 依赖
         uses: actions/cache@v4
