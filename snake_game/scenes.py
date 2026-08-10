@@ -11,8 +11,6 @@ from game_state import GameState
 from food import spawn_food, FoodType
 from renderer import Renderer
 from highscore import load_highscore, save_highscore
-from sound import SoundManager
-
 
 class Scene(Enum):
     MENU = auto()
@@ -34,7 +32,6 @@ class SceneManager:
         self.highscore = load_highscore()
         self.menu_difficulty = DifficultyLevel.MEDIUM
         self.difficulty_highlight_timer = 0.0
-        self.sound = SoundManager()
         self._move_timer = 0  # 控制蛇移动的累计时间（毫秒）
 
     # ── 场景切换 ──────────────────────────────────────
@@ -95,7 +92,6 @@ class SceneManager:
             return
         if key == pygame.K_SPACE:
             self.scene = Scene.PAUSE
-            self.sound.play_pause()
         elif key in (pygame.K_UP, pygame.K_w):
             self.game_state.snake.set_direction(DIRECTION_UP)
         elif key in (pygame.K_DOWN, pygame.K_s):
@@ -120,7 +116,6 @@ class SceneManager:
         if self.game_state:
             self.game_state.set_difficulty(difficulty)
             self.difficulty_highlight_timer = 1.0
-            self.sound.play_difficulty()
 
     def _cycle_game_difficulty(self, direction: int) -> None:
         """在游戏中逐步切换难度"""
@@ -182,7 +177,6 @@ class SceneManager:
                 self.game_state.snake.check_self_collision() or
                 self.game_state.check_obstacle_collision()):
             self.scene = Scene.GAMEOVER
-            self.sound.play_die()
             score = self.game_state.score
             if score > self.highscore:
                 self.highscore = score
@@ -204,15 +198,8 @@ class SceneManager:
             return
 
         food = self.food
-        old_level = self.game_state.foods_eaten // FOODS_PER_LEVEL
         self.game_state.snake.grow()
         self.game_state.add_score(food.score)
-        new_level = self.game_state.foods_eaten // FOODS_PER_LEVEL
-
-        if new_level > old_level:
-            self.sound.play_level_up()
-        else:
-            self.sound.play_eat()
 
         # 应用食物效果
         if food.type == FoodType.SPEED_UP:
